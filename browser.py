@@ -22,6 +22,15 @@ class URL:
             self.host, port = self.host.split(":", 1)
             self.port = int(port)
 
+        self.header_dict = {
+            "Host": self.host,
+            "Connection": "close",
+            "User-Agent": "pybrowser",
+        }
+
+    def get_headers(self):
+        return "".join([f"{k}: {v}\r\n" for k, v in self.header_dict.items()])
+
     def request(self):
         s = socket.socket(
             family=socket.AF_INET,
@@ -35,8 +44,8 @@ class URL:
             ctx = ssl.create_default_context()
             s = ctx.wrap_socket(s, server_hostname=self.host)
 
-        request = f"GET {self.path} HTTP/1.0\r\n"
-        request += f"Host: {self.host}\r\n"
+        request = f"GET {self.path} HTTP/1.1\r\n"
+        request += self.get_headers()
         request += "\r\n"
 
         s.send(request.encode("utf8"))
