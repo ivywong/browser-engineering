@@ -103,14 +103,31 @@ class URL:
         return content
 
 
+# primitive parser
 def show(body: str):
     in_tag = False
+    in_entity = False
+    curr_entity = ""
+
+    ENTITIES = {
+        "lt": "<",
+        "gt": ">",
+    }
     for c in body:
-        if c == "<":
+        if c == "&":
+            in_entity = True
+        elif c == ";":
+            print(ENTITIES[curr_entity]
+                  if curr_entity in ENTITIES else "", end="")
+            curr_entity = ""
+            in_entity = False
+        elif in_entity:
+            curr_entity += c
+        elif c == "<":
             in_tag = True
         elif c == ">":
             in_tag = False
-        elif not in_tag:
+        elif not in_tag and not in_entity:
             print(c, end="")
 
 
