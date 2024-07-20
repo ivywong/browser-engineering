@@ -58,7 +58,7 @@ class URL:
         # only support basic media types for now
         if self.content_type not in ["text/html", "text/plain"]:
             return ""
-        return self.content
+        return self.content + "\n"
 
     def request(self):
         s = socket.socket(
