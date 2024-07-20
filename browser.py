@@ -4,17 +4,24 @@ import ssl
 
 class URL:
     def __init__(self, url: str) -> None:
-        self.scheme, url = url.split("://", 1)
-        assert self.scheme in ["http", "https", "file"]
+        if "://" in url:
+            self.scheme, url = url.split("://", 1)
+        else:
+            self.scheme, url = url.split(":", 1)
+
+        assert self.scheme in ["http", "https", "file", "data"]
+
+        if self.scheme == "data":
+            self.content_type, self.content = url.split(",", 1)
+
+        if self.scheme in ["file", "data"]:
+            return
 
         if "/" not in url:
             url = url + "/"
 
         self.host, url = url.split("/", 1)
         self.path = "/" + url
-
-        if self.scheme == "file":
-            return
 
         if self.scheme == "http":
             self.port = 80
@@ -46,9 +53,18 @@ class URL:
 
         return "404 File not found\r\n"
 
+    def open_data(self):
+        # only support basic media types for now
+        if self.content_type not in ["text/html", "text/plain"]:
+            return ""
+
+        return self.content
+
     def request(self):
         if self.scheme == "file":
             return self.open_file()
+        if self.scheme == "data":
+            return self.open_data()
 
         s = socket.socket(
             family=socket.AF_INET,
