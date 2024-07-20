@@ -10,6 +10,7 @@ COMMANDS=(
     "file://$(pwd)/test/"
     "data:text/html,Hello World"
     "data:text/html,&lt;div&gt;Hello World&lt;/div&gt;"
+    "view-source:http://example.org/"
 )
 
 success=0

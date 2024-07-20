@@ -4,10 +4,18 @@ import ssl
 
 class URL:
     def __init__(self, url: str) -> None:
-        if "://" in url:
-            self.scheme, url = url.split("://", 1)
-        else:
+        self.view_source = False
+
+        # TODO: figure out better way to parse urls
+        if url.startswith("data:"):
             self.scheme, url = url.split(":", 1)
+        if url.startswith("view-source:"):
+            self.view_source = True
+            url = url.split(":", 1)[1]
+            self.scheme, url = url.split("://", 1)
+
+        elif "://" in url:
+            self.scheme, url = url.split("://", 1)
 
         assert self.scheme in ["http", "https", "file", "data"]
 
@@ -138,7 +146,10 @@ def load(url: URL):
         show(url.open_data())
     elif url.scheme in ["http", "https"]:
         body = url.request()
-        show(body)
+        if url.view_source:
+            print(body)
+        else:
+            show(body)
 
 
 if __name__ == "__main__":
