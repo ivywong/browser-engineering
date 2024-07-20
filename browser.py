@@ -14,29 +14,30 @@ class URL:
         if self.scheme == "data":
             self.content_type, self.content = url.split(",", 1)
 
-        if self.scheme in ["file", "data"]:
-            return
+        elif self.scheme == "file":
+            self.path = url
 
-        if "/" not in url:
-            url = url + "/"
+        elif self.scheme in ["http", "https"]:
+            if "/" not in url:
+                url = url + "/"
 
-        self.host, url = url.split("/", 1)
-        self.path = "/" + url
+            self.host, url = url.split("/", 1)
+            self.path = "/" + url
 
-        if self.scheme == "http":
-            self.port = 80
-        elif self.scheme == "https":
-            self.port = 443
+            if self.scheme == "http":
+                self.port = 80
+            elif self.scheme == "https":
+                self.port = 443
 
-        if ":" in self.host:
-            self.host, port = self.host.split(":", 1)
-            self.port = int(port)
+            if ":" in self.host:
+                self.host, port = self.host.split(":", 1)
+                self.port = int(port)
 
-        self.header_dict = {
-            "Host": self.host,
-            "Connection": "close",
-            "User-Agent": "pybrowser",
-        }
+            self.header_dict = {
+                "Host": self.host,
+                "Connection": "close",
+                "User-Agent": "pybrowser",
+            }
 
     def get_headers(self):
         return "".join([f"{k}: {v}\r\n" for k, v in self.header_dict.items()])
@@ -57,15 +58,9 @@ class URL:
         # only support basic media types for now
         if self.content_type not in ["text/html", "text/plain"]:
             return ""
-
         return self.content
 
     def request(self):
-        if self.scheme == "file":
-            return self.open_file()
-        if self.scheme == "data":
-            return self.open_data()
-
         s = socket.socket(
             family=socket.AF_INET,
             type=socket.SOCK_STREAM,
@@ -120,8 +115,13 @@ def show(body: str):
 
 
 def load(url: URL):
-    body = url.request()
-    show(body)
+    if url.scheme == "file":
+        show(url.open_file())
+    elif url.scheme == "data":
+        show(url.open_data())
+    elif url.scheme in ["http", "https"]:
+        body = url.request()
+        show(body)
 
 
 if __name__ == "__main__":
