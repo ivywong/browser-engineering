@@ -5,13 +5,16 @@ import ssl
 class URL:
     def __init__(self, url: str) -> None:
         self.scheme, url = url.split("://", 1)
-        assert self.scheme in ["http", "https"]
+        assert self.scheme in ["http", "https", "file"]
 
         if "/" not in url:
             url = url + "/"
 
         self.host, url = url.split("/", 1)
         self.path = "/" + url
+
+        if self.scheme == "file":
+            return
 
         if self.scheme == "http":
             self.port = 80
@@ -31,7 +34,22 @@ class URL:
     def get_headers(self):
         return "".join([f"{k}: {v}\r\n" for k, v in self.header_dict.items()])
 
+    def open_file(self):
+        import pathlib
+        path = pathlib.Path(self.path)
+        if path.exists() and path.is_file():
+            with path.open() as f:
+                content = f.read()
+                return content
+        elif path.exists() and path.is_dir():
+            return "".join([f"- {str(c)}\r\n" for c in path.iterdir()])
+
+        return "404 File not found\r\n"
+
     def request(self):
+        if self.scheme == "file":
+            return self.open_file()
+
         s = socket.socket(
             family=socket.AF_INET,
             type=socket.SOCK_STREAM,
