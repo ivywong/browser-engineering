@@ -4,6 +4,7 @@ import ssl
 
 class URL:
     def __init__(self, url: str) -> None:
+        self.socket = None
         self.view_source = False
 
         # TODO: figure out better way to parse urls
@@ -43,7 +44,7 @@ class URL:
 
             self.header_dict = {
                 "Host": self.host,
-                "Connection": "close",
+                "Connection": "Keep-Alive",
                 "User-Agent": "pybrowser",
             }
 
@@ -69,25 +70,26 @@ class URL:
         return self.content + "\n"
 
     def request(self):
-        s = socket.socket(
-            family=socket.AF_INET,
-            type=socket.SOCK_STREAM,
-            proto=socket.IPPROTO_TCP,
-        )
+        if not self.socket:
+            self.socket = socket.socket(
+                family=socket.AF_INET,
+                type=socket.SOCK_STREAM,
+                proto=socket.IPPROTO_TCP,
+            )
+            self.socket.connect((self.host, self.port))
 
-        s.connect((self.host, self.port))
-
-        if self.scheme == "https":
-            ctx = ssl.create_default_context()
-            s = ctx.wrap_socket(s, server_hostname=self.host)
+            if self.scheme == "https":
+                ctx = ssl.create_default_context()
+                self.socket = ctx.wrap_socket(
+                    self.socket, server_hostname=self.host)
 
         request = f"GET {self.path} HTTP/1.1\r\n"
         request += self.get_headers()
         request += "\r\n"
 
-        s.send(request.encode("utf8"))
+        self.socket.send(request.encode("utf8"))
 
-        response = s.makefile("r", encoding="utf8", newline="\r\n")
+        response = self.socket.makefile("r", encoding="utf8", newline="\r\n")
         statusline = response.readline()
         version, status, explanation = statusline.split(" ", 2)
 
@@ -105,13 +107,15 @@ class URL:
         assert "transfer-encoding" not in response_headers
         assert "content-encoding" not in response_headers
 
-        content = response.read()
-        s.close()
+        content = response.read(int(response_headers["content-length"]))
 
         return content
 
+    def cleanup(self):
+        if self.socket:
+            self.socket.close()
 
-# primitive parser
+
 def show(body: str):
     in_tag = False
     in_entity = False
@@ -154,4 +158,9 @@ def load(url: URL):
 
 if __name__ == "__main__":
     import sys
-    load(URL(sys.argv[1]))
+    url = URL(sys.argv[1])
+    load(url)
+    # test reusing sockets
+    load(url)
+
+    url.cleanup()
